@@ -6,4 +6,5 @@ export const COMMON_ROLE_PRESETS = [
   "Athlete",
   "Agent",
   "Parent / Guardian",
+  "Content Creator"
 ];
