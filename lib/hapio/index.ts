@@ -3,6 +3,8 @@
 const HAPIO_URL = process.env.HAPIO_URL ?? "https://eu-central-1.hapio.net/v1";
 const HAPIO_KEY = process.env.HAPIO_KEY!;
 
+export type AdminBlockCategory = "work" | "personal" | "meeting" | "maintenance" | "other";
+
 // Hardcoded — single location, single service for the whole app
 export const HAPIO_LOCATION_ID = "705cc639-ed36-4169-bf2b-cab8be5c7f93";
 export const HAPIO_SERVICE_ID = "d8fcf10f-fef7-4f23-ab16-b0b621fa37c8";
@@ -92,6 +94,59 @@ export async function confirmHapioBooking(hapioBookingId: string) {
     method: "PATCH",
     body: JSON.stringify({
       is_temporary: false,
+    }),
+  });
+}
+
+export async function createAdminBooking(params: {
+  resourceId: string;
+  startsAt: string;
+  endsAt: string;
+  category: AdminBlockCategory; // <-- Require the admin to pick a category
+  note?: string;                // <-- Optional extra details
+}) {
+  return hapioFetch<{ id: string; [key: string]: unknown }>(`/bookings`, {
+    method: "POST",
+    body: JSON.stringify({
+      location_id: HAPIO_LOCATION_ID,
+      service_id: HAPIO_SERVICE_ID,
+      resource_id: params.resourceId,
+      starts_at: params.startsAt,
+      ends_at: params.endsAt,
+      is_temporary: false,
+      ignore_bookable_slots: true,
+      // Pass the categorization into Hapio's metadata
+      metadata: { 
+        is_admin_block: true,       // Flag to easily separate from customers
+        category: params.category,  // "work", "personal", etc.
+        note: params.note || ""     // Any custom text the admin typed
+      }
+    }),
+  });
+}
+
+
+// --- Create CUSTOMER booking ---
+// Normal users must follow the schedule rules.
+export async function createCustomerBooking(params: {
+  resourceId: string;
+  startsAt: string;
+  endsAt: string;
+  isTemporary: boolean;
+}) {
+  return hapioFetch<{ id: string; [key: string]: unknown }>(`/bookings`, {
+    method: "POST",
+    body: JSON.stringify({
+      location_id: HAPIO_LOCATION_ID,
+      service_id: HAPIO_SERVICE_ID,
+      resource_id: params.resourceId,
+      starts_at: params.startsAt,
+      ends_at: params.endsAt,
+      is_temporary: params.isTemporary, 
+      
+      // FIX THIS LINE: Must be false for standard users so they are forced 
+      // to pick times that actually exist in getBookableSlots()
+      ignore_bookable_slots: false 
     }),
   });
 }
