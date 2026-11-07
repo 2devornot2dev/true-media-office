@@ -97,6 +97,7 @@ export async function confirmHapioBooking(hapioBookingId: string) {
     }),
   });
 }
+// add more notes to the code
 
 export async function createAdminBooking(params: {
   resourceId: string;
